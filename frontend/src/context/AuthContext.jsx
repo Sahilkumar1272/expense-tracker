@@ -41,7 +41,11 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       const response = await ApiService.login(credentials);
-      ApiService.setToken(response.access_token);
+      if (credentials.remember) {
+        ApiService.setToken(response.access_token); // Uses localStorage
+      } else {
+        sessionStorage.setItem('access_token', response.access_token); // Temporary session
+      }
       setUser(response.user);
       setIsAuthenticated(true);
       return response;
@@ -71,6 +75,33 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const forgotPassword = async (email) => {
+    try {
+      const response = await ApiService.forgotPassword(email);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const verifyResetToken = async (token) => {
+    try {
+      const response = await ApiService.verifyResetToken(token);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const resetPassword = async (data) => {
+    try {
+      const response = await ApiService.resetPassword(data);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const logout = () => {
     ApiService.removeToken();
     setUser(null);
@@ -84,6 +115,9 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     verifyEmail,
+    forgotPassword,
+    verifyResetToken,
+    resetPassword,
     logout
   };
 

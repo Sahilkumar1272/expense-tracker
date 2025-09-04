@@ -59,6 +59,27 @@ class ApiService {
     });
   }
 
+  async forgotPassword(email) {
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async verifyResetToken(token) {
+    return this.request('/auth/verify-reset-token', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async resetPassword(data) {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async getProfile() {
     return this.request('/auth/profile');
   }
@@ -69,11 +90,12 @@ class ApiService {
   }
 
   getToken() {
-    return localStorage.getItem('access_token');
+    return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
   }
 
   removeToken() {
     localStorage.removeItem('access_token');
+    sessionStorage.removeItem('access_token');
   }
 }
 

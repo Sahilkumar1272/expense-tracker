@@ -1,10 +1,11 @@
-// This is the correct way for your App component
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage'; // Add this import
+import ResetPasswordPage from './pages/ResetPasswordPage'; // Add this import
 import DashboardPage from './pages/DashboardPage';
 
 // Protected Route Component
@@ -32,7 +33,6 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
-      {/* Removed the <Router> here */}
       <div className="App">
         <Routes>
           {/* Public Routes */}
@@ -56,6 +56,22 @@ function App() {
             } 
           />
           <Route path="/verify-email" element={<EmailVerificationPage />} />
+          <Route 
+            path="/forgot-password" 
+            element={
+              <PublicRoute>
+                <ForgotPasswordPage />
+              </PublicRoute>
+            } 
+          />
+          <Route 
+            path="/reset-password" 
+            element={
+              <PublicRoute>
+                <ResetPasswordPage />
+              </PublicRoute>
+            } 
+          />
           
           {/* Protected Routes */}
           <Route 
