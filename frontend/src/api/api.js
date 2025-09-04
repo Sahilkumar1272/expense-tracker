@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000
 class ApiService {
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
-    const token = this.getToken();
+    const token = options.isRefresh ? this.getRefreshToken() : this.getToken();
     
     const config = {
       headers: {
@@ -20,7 +20,7 @@ class ApiService {
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'An error occurred');
+        throw new Error(data.msg || data.error || 'An error occurred');
       }
       
       return data;
@@ -80,6 +80,13 @@ class ApiService {
     });
   }
 
+  async refreshToken() {
+    return this.request('/auth/refresh', {
+      method: 'POST',
+      isRefresh: true,
+    });
+  }
+
   async getProfile() {
     return this.request('/auth/profile');
   }
@@ -93,9 +100,19 @@ class ApiService {
     return localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
   }
 
+  setRefreshToken(token) {
+    localStorage.setItem('refresh_token', token);
+  }
+
+  getRefreshToken() {
+    return localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token');
+  }
+
   removeToken() {
     localStorage.removeItem('access_token');
     sessionStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('refresh_token');
   }
 }
 

@@ -22,7 +22,8 @@ class Config:
     
     # JWT
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'fallback-secret-key')
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)  # Access token lasts 24 hours
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)  # Refresh token lasts 30 days
     
     # Email
     MAIL_SERVER = 'smtp.gmail.com'

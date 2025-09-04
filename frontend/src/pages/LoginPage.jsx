@@ -181,6 +181,7 @@ const LoginPage = () => {
                 }`}
                 required
                 disabled={loading}
+                autoComplete="username"
               />
               {errors.email && (
                 <p className="mt-1 text-sm text-red-400">{errors.email}</p>
@@ -204,6 +205,8 @@ const LoginPage = () => {
                   }`}
                   required
                   disabled={loading}
+                  autoComplete="current-password"
+
                 />
                 <button
                   type="button"

@@ -3,7 +3,7 @@ from flask import request, jsonify
 from models import db, RateLimitLog
 from datetime import datetime, timedelta
 
-def rate_limit(max_attempts, window_hours=1, endpoint_name=None):
+def rate_limit(limit, period, endpoint_name=None):
     """Rate limiting decorator"""
     def decorator(f):
         @wraps(f)
@@ -14,17 +14,20 @@ def rate_limit(max_attempts, window_hours=1, endpoint_name=None):
             
             endpoint = endpoint_name or request.endpoint
             
-            # Count attempts in the time window
+            # Convert period (seconds) to hours for timedelta
+            window_hours = period / 3600.0
             cutoff_time = datetime.utcnow() - timedelta(hours=window_hours)
+            
+            # Count attempts in the time window
             recent_attempts = RateLimitLog.query.filter(
                 RateLimitLog.ip_address == ip_address,
                 RateLimitLog.endpoint == endpoint,
                 RateLimitLog.attempt_time > cutoff_time
             ).count()
             
-            if recent_attempts >= max_attempts:
+            if recent_attempts >= limit:
                 return jsonify({
-                    'error': f'Rate limit exceeded. Maximum {max_attempts} attempts per {window_hours} hour(s). Please try again later.'
+                    'error': f'Rate limit exceeded. Maximum {limit} attempts per {period//3600} hour(s). Please try again later.'
                 }), 429
             
             # Log this attempt

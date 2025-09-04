@@ -201,6 +201,7 @@ const RegisterPage = () => {
                 value={formData.name}
                 onChange={handleChange}
                 disabled={loading}
+                autoComplete="name"
               />
               {errors.name && <p className="mt-1 text-sm text-red-300">{errors.name}</p>}
             </div>
@@ -214,7 +215,7 @@ const RegisterPage = () => {
                 id="email"
                 name="email"
                 type="email"
-                autoComplete="email"
+                autoComplete="username"
                 required
                 className={`w-full bg-white/5 border ${
                   errors.email ? 'border-red-500/50' : 'border-white/20'
@@ -223,6 +224,7 @@ const RegisterPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 disabled={loading}
+                
               />
               {errors.email && <p className="mt-1 text-sm text-red-300">{errors.email}</p>}
             </div>
@@ -246,6 +248,7 @@ const RegisterPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   disabled={loading}
+                  
                 />
                 <button
                   type="button"
@@ -292,6 +295,7 @@ const RegisterPage = () => {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   disabled={loading}
+                  
                 />
                 <button
                   type="button"
