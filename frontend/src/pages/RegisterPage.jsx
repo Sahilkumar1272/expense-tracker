@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -8,33 +9,111 @@ const RegisterPage = () => {
     password: '',
     confirmPassword: ''
   });
-
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const { register } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+    
     // Clear error when user starts typing
-    if (errors[e.target.name]) {
+    if (errors[e.target.name] || errors.submit) {
       setErrors({
         ...errors,
-        [e.target.name]: ''
+        [e.target.name]: '',
+        submit: ''
       });
     }
   };
 
-  const handleSubmit = (e) => {
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters long';
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters long';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?\":{}|<>])/.test(formData.password)) {
+      newErrors.password = 'Password must contain uppercase, lowercase, number, and special character';
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    return newErrors;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add your validation and submission logic here
-    console.log('Form submitted:', formData);
+    setErrors({});
+    setLoading(true);
+
+    // Validate form
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log('Submitting registration:', formData); // Debug log
+      
+      // Call register function from AuthContext
+      const response = await register({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        confirmPassword: formData.confirmPassword
+      });
+
+      console.log('Registration response:', response); // Debug log
+
+      // Navigate to email verification page with user data
+      navigate('/verify-email', {
+        state: {
+          userId: response.user_id,
+          userEmail: formData.email.trim()
+        }
+      });
+
+    } catch (error) {
+      console.error('Registration error:', error); // Debug log
+      setErrors({
+        submit: error.message || 'Registration failed. Please try again.'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignUp = () => {
-    // Add Google sign-up logic here
     console.log('Google sign-up clicked');
   };
 
@@ -71,10 +150,18 @@ const RegisterPage = () => {
             <p className="text-gray-300">Join thousands managing their finances smartly</p>
           </div>
 
+          {/* Submit Error */}
+          {errors.submit && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-300 px-4 py-3 rounded-lg text-sm mb-6">
+              {errors.submit}
+            </div>
+          )}
+
           {/* Google Sign Up Button */}
           <button
             onClick={handleGoogleSignUp}
-            className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white p-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-3 mb-6 group"
+            disabled={loading}
+            className="w-full bg-white/10 hover:bg-white/20 border border-white/20 text-white p-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-3 mb-6 group disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -103,14 +190,19 @@ const RegisterPage = () => {
                 Full Name
               </label>
               <input
-                type="text"
+                id="name"
                 name="name"
+                type="text"
+                required
+                className={`w-full bg-white/5 border ${
+                  errors.name ? 'border-red-500/50' : 'border-white/20'
+                } rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
+                placeholder="Enter your full name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Enter your full name"
-                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                required
+                disabled={loading}
               />
+              {errors.name && <p className="mt-1 text-sm text-red-300">{errors.name}</p>}
             </div>
 
             {/* Email Field */}
@@ -119,14 +211,20 @@ const RegisterPage = () => {
                 Email Address
               </label>
               <input
-                type="email"
+                id="email"
                 name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className={`w-full bg-white/5 border ${
+                  errors.email ? 'border-red-500/50' : 'border-white/20'
+                } rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
+                placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="Enter your email"
-                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                required
+                disabled={loading}
               />
+              {errors.email && <p className="mt-1 text-sm text-red-300">{errors.email}</p>}
             </div>
 
             {/* Password Field */}
@@ -136,17 +234,23 @@ const RegisterPage = () => {
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"}
+                  id="password"
                   name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
+                  className={`w-full bg-white/5 border ${
+                    errors.password ? 'border-red-500/50' : 'border-white/20'
+                  } rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
+                  placeholder="Create a strong password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Create a strong password"
-                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  required
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 >
                   {showPassword ? (
@@ -161,6 +265,12 @@ const RegisterPage = () => {
                   )}
                 </button>
               </div>
+              {errors.password && <p className="mt-1 text-sm text-red-300">{errors.password}</p>}
+              <div className="mt-1">
+                <p className="text-xs text-gray-400">
+                  Must be 8+ characters with uppercase, lowercase, number, and special character
+                </p>
+              </div>
             </div>
 
             {/* Confirm Password Field */}
@@ -170,17 +280,23 @@ const RegisterPage = () => {
               </label>
               <div className="relative">
                 <input
-                  type={showConfirmPassword ? "text" : "password"}
+                  id="confirmPassword"
                   name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
+                  className={`w-full bg-white/5 border ${
+                    errors.confirmPassword ? 'border-red-500/50' : 'border-white/20'
+                  } rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
+                  placeholder="Re-enter your password"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  placeholder="Re-enter your password"
-                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                  required
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  disabled={loading}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
                 >
                   {showConfirmPassword ? (
@@ -195,6 +311,7 @@ const RegisterPage = () => {
                   )}
                 </button>
               </div>
+              {errors.confirmPassword && <p className="mt-1 text-sm text-red-300">{errors.confirmPassword}</p>}
             </div>
 
             {/* Terms and Conditions */}
@@ -220,9 +337,14 @@ const RegisterPage = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transform hover:scale-[1.02] transition-all duration-200 shadow-lg"
+              disabled={loading}
+              className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 shadow-lg ${
+                loading
+                  ? 'bg-gray-600 cursor-not-allowed text-gray-300'
+                  : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transform hover:scale-[1.02]'
+              }`}
             >
-              Create Account
+              {loading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
 
@@ -236,6 +358,13 @@ const RegisterPage = () => {
               >
                 Sign in
               </Link>
+            </p>
+          </div>
+
+          {/* Security Note */}
+          <div className="text-center mt-4">
+            <p className="text-xs text-gray-500">
+              🔒 Your data is protected with bank-level encryption
             </p>
           </div>
         </div>
