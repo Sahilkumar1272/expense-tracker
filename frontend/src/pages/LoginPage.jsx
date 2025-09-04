@@ -64,10 +64,13 @@ const LoginPage = () => {
 
       navigate('/dashboard');
     } catch (error) {
+      console.log('Login error:', error);
+      
       if (error.message.includes('verify your email')) {
         setErrors({ 
           submit: error.message,
-          action: 'verify'
+          action: 'verify',
+          userId: error.user_id
         });
       } else {
         setErrors({ submit: error.message || 'Login failed' });
@@ -122,10 +125,14 @@ const LoginPage = () => {
               {errors.action === 'verify' && (
                 <div className="mt-2 text-center">
                   <Link 
-                    to="/register" 
+                    to="/verify-email"
+                    state={{ 
+                      userId: errors.userId,
+                      userEmail: formData.email 
+                    }}
                     className="text-purple-400 hover:text-purple-300 text-sm underline"
                   >
-                    Go to registration to verify email
+                    Go to email verification
                   </Link>
                 </div>
               )}
