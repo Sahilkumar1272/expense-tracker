@@ -32,6 +32,9 @@ class Config:
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.environ.get('MAIL_USERNAME')
     
+    # Frontend
+    FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+    
     # Security
     SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-secret-key')
     

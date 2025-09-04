@@ -3,6 +3,10 @@ from datetime import datetime, timedelta
 import bcrypt
 import secrets
 import re
+import random
+import string
+
+
 
 db = SQLAlchemy()
 
@@ -142,3 +146,20 @@ class EmailValidator:
             return False, "Disposable email addresses are not allowed"
         
         return True, "Valid email"
+    
+
+
+class PasswordResetToken(db.Model):
+    __tablename__ = 'password_reset_tokens'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    token = db.Column(db.String(32), unique=True, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    is_used = db.Column(db.Boolean, default=False)
+
+    @staticmethod
+    def generate_token():
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+
+    def is_expired(self):
+        return datetime.utcnow() > self.expires_at
