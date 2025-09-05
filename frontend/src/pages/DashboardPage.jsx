@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const DashboardPage = () => {
   const { user, logout, loading } = useAuth();
@@ -18,21 +19,10 @@ const DashboardPage = () => {
     navigate('/');
   };
 
+  // Only show loading spinner when auth is loading
   if (loading) {
     console.log('Loading state active:', loading, new Date().toISOString());
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="relative w-24 h-24">
-            <div className="absolute inset-0 border-8 border-purple-600 border-t-transparent rounded-full custom-spin z-50"></div>
-            <div className="absolute inset-2 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg flex items-center justify-center custom-pulse">
-              <span className="text-white font-bold text-3xl">E</span>
-            </div>
-          </div>
-          <p className="text-white text-xl font-semibold custom-pulse">Loading Your Dashboard...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading Your Dashboard..." />;
   }
 
   if (!user) {

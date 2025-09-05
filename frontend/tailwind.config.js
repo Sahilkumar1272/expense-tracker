@@ -7,9 +7,5 @@ export default {
   theme: {
     extend: {},
   },
-  safelist: [
-    'animate-spin',
-    'animate-pulse',
-  ],
   plugins: [],
 }
