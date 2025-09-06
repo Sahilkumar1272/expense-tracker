@@ -88,6 +88,25 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+ const googleLogin = async (id_token, remember = true) => {
+  try {
+    const response = await ApiService.googleLogin(id_token);
+    if (remember) {
+      ApiService.setToken(response.access_token);
+      ApiService.setRefreshToken(response.refresh_token);
+    } else {
+      sessionStorage.setItem('access_token', response.access_token);
+      sessionStorage.setItem('refresh_token', response.refresh_token);
+    }
+    setUser(response.user);
+    setIsAuthenticated(true);
+    return response;
+  } catch (error) {
+    console.error('Google login error:', error.message);
+    throw error;
+  }
+};
+
   const register = async (userData) => {
     try {
       const response = await ApiService.register(userData);
@@ -153,6 +172,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     login,
+    googleLogin,
     register,
     verifyEmail,
     forgotPassword,

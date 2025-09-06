@@ -47,3 +47,6 @@ class Config:
     # Cleanup settings
     PENDING_USER_EXPIRY_HOURS = 24
     CLEANUP_INTERVAL_MINUTES = 30
+    
+    # Google OAuth
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')

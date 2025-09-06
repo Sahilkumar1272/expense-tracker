@@ -6,8 +6,6 @@ import re
 import random
 import string
 
-
-
 db = SQLAlchemy()
 
 class User(db.Model):
@@ -16,8 +14,10 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(255), nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)  # Changed to nullable=True for OAuth users
     is_verified = db.Column(db.Boolean, default=True)  # Always True since we only create after verification
+    oauth_provider = db.Column(db.String(50), nullable=True)  # e.g., 'google'
+    oauth_id = db.Column(db.String(255), nullable=True)  # Google's 'sub' ID
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -28,6 +28,8 @@ class User(db.Model):
     
     def check_password(self, password):
         """Check if provided password matches hash"""
+        if self.password_hash is None:
+            return False  # OAuth-only user; cannot log in with password
         return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
     
     def to_dict(self):
@@ -36,6 +38,7 @@ class User(db.Model):
             'name': self.name,
             'email': self.email,
             'is_verified': self.is_verified,
+            'oauth_provider': self.oauth_provider,  # Added
             'created_at': self.created_at.isoformat()
         }
 
@@ -146,8 +149,6 @@ class EmailValidator:
             return False, "Disposable email addresses are not allowed"
         
         return True, "Valid email"
-    
-
 
 class PasswordResetToken(db.Model):
     __tablename__ = 'password_reset_tokens'

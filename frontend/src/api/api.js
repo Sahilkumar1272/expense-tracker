@@ -1,4 +1,3 @@
-// Use environment variable or fallback to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 class ApiService {
@@ -90,6 +89,13 @@ class ApiService {
   async getProfile() {
     return this.request('/auth/profile');
   }
+
+ async googleLogin(id_token) {
+  return this.request('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ id_token }),
+  });
+}
 
   // Helper methods
   setToken(token) {
