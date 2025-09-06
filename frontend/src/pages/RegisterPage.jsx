@@ -124,18 +124,17 @@ const RegisterPage = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Google sign-up error:', error);
-      setErrors({ 
-        submit: error.message || 'Google sign-up failed. Please try again.' 
+      setErrors({
+        submit: error.message || 'Google sign-up failed. Please try again.'
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleError = (error) => {
-    console.error('Google OAuth Error:', error);
-    setErrors({ 
-      submit: 'Google sign-up failed. Please try again.' 
+  const handleGoogleError = () => {
+    setErrors({
+      submit: 'Google sign-up failed. Please try again.'
     });
   };
 
@@ -165,45 +164,18 @@ const RegisterPage = () => {
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl flex items-center justify-center">
-                <span className="text-white font-bold text-2xl">E</span>
+                <span className="text-white font-bold text-2xl">R</span>
               </div>
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-            <p className="text-gray-300">Join thousands managing their finances smartly</p>
+            <p className="text-gray-300">Get started with expense tracking</p>
           </div>
 
-          {/* Submit Error */}
           {errors.submit && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-300 px-4 py-3 rounded-lg text-sm mb-6">
-              {errors.submit}
+            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+              <p className="text-red-400 text-center">{errors.submit}</p>
             </div>
           )}
-
-          {/* Google Sign Up Button */}
-          <div className="mb-6">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              useOneTap={false}
-              theme="filled_blue"
-              size="large"
-              width="100%"
-              text="signup_with"
-              shape="rectangular"
-              logo_alignment="left"
-              disabled={loading}
-            />
-          </div>
-
-          {/* Divider */}
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/20"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-transparent text-gray-400">or continue with email</span>
-            </div>
-          </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -213,16 +185,13 @@ const RegisterPage = () => {
                 Full Name
               </label>
               <input
-                id="name"
-                name="name"
                 type="text"
-                required
-                className={`w-full bg-white/5 border ${
-                  errors.name ? 'border-red-500/50' : 'border-white/20'
-                } rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
-                placeholder="Enter your full name"
+                name="name"
                 value={formData.name}
                 onChange={handleChange}
+                placeholder="Enter your full name"
+                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                required
                 disabled={loading}
                 autoComplete="name"
               />
@@ -235,18 +204,15 @@ const RegisterPage = () => {
                 Email Address
               </label>
               <input
-                id="email"
-                name="email"
                 type="email"
-                autoComplete="username"
-                required
-                className={`w-full bg-white/5 border ${
-                  errors.email ? 'border-red-500/50' : 'border-white/20'
-                } rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
-                placeholder="Enter your email"
+                name="email"
                 value={formData.email}
                 onChange={handleChange}
+                placeholder="Enter your email"
+                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                required
                 disabled={loading}
+                autoComplete="email"
               />
               {errors.email && <p className="mt-1 text-sm text-red-300">{errors.email}</p>}
             </div>
@@ -258,24 +224,21 @@ const RegisterPage = () => {
               </label>
               <div className="relative">
                 <input
-                  id="password"
-                  name="password"
                   type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  className={`w-full bg-white/5 border ${
-                    errors.password ? 'border-red-500/50' : 'border-white/20'
-                  } rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
-                  placeholder="Create a strong password"
+                  name="password"
                   value={formData.password}
                   onChange={handleChange}
+                  placeholder="Create a password"
+                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  required
                   disabled={loading}
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={loading}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  disabled={loading}
                 >
                   {showPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -290,11 +253,9 @@ const RegisterPage = () => {
                 </button>
               </div>
               {errors.password && <p className="mt-1 text-sm text-red-300">{errors.password}</p>}
-              <div className="mt-1">
-                <p className="text-xs text-gray-400">
-                  Must be 8+ characters with uppercase, lowercase, number, and special character
-                </p>
-              </div>
+              <p className="mt-1 text-xs text-gray-400">
+                Must be 8+ characters with uppercase, lowercase, number, and special character
+              </p>
             </div>
 
             {/* Confirm Password Field */}
@@ -304,24 +265,21 @@ const RegisterPage = () => {
               </label>
               <div className="relative">
                 <input
-                  id="confirmPassword"
-                  name="confirmPassword"
                   type={showConfirmPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  required
-                  className={`w-full bg-white/5 border ${
-                    errors.confirmPassword ? 'border-red-500/50' : 'border-white/20'
-                  } rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all`}
-                  placeholder="Re-enter your password"
+                  name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
+                  placeholder="Re-enter your password"
+                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  required
                   disabled={loading}
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  disabled={loading}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  disabled={loading}
                 >
                   {showConfirmPassword ? (
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -371,6 +329,30 @@ const RegisterPage = () => {
               {loading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
+
+          {/* Google Sign Up */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-transparent text-gray-400">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap
+                shape="pill"
+                theme="filled_blue"
+                text="signup_with"
+                disabled={loading}
+              />
+            </div>
+          </div>
 
           {/* Login Link */}
           <div className="text-center mt-6 pt-6 border-t border-white/10">

@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ApiService from '../api/api';
+import { useState, useEffect } from "react";
+import { useLocation, useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import ApiService from "../api/authApi";
 
 const EmailVerificationPage = () => {
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
@@ -20,7 +20,7 @@ const EmailVerificationPage = () => {
 
   useEffect(() => {
     if (!userId) {
-      navigate('/register');
+      navigate("/register");
     }
   }, [userId, navigate]);
 
@@ -34,23 +34,23 @@ const EmailVerificationPage = () => {
 
   const handleOtpChange = (index, value) => {
     if (value.length > 1) return;
-    
+
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-    
+
     // Auto-focus next input
     if (value && index < 5) {
       const nextInput = document.getElementById(`otp-${index + 1}`);
       nextInput?.focus();
     }
-    
+
     // Clear error when user starts typing
-    if (error) setError('');
+    if (error) setError("");
   };
 
   const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
       const prevInput = document.getElementById(`otp-${index - 1}`);
       prevInput?.focus();
     }
@@ -58,28 +58,28 @@ const EmailVerificationPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const otpValue = otp.join('');
-    
+    const otpValue = otp.join("");
+
     if (otpValue.length !== 6) {
-      setError('Please enter the complete 6-digit code');
+      setError("Please enter the complete 6-digit code");
       return;
     }
 
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       await verifyEmail({
         user_id: userId,
-        otp: otpValue
+        otp: otpValue,
       });
-      
-      setSuccess('Email verified successfully! Redirecting...');
+
+      setSuccess("Email verified successfully! Redirecting...");
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }, 2000);
     } catch (error) {
-      setError(error.message || 'Verification failed. Please try again.');
+      setError(error.message || "Verification failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -87,17 +87,17 @@ const EmailVerificationPage = () => {
 
   const handleResendCode = async () => {
     if (resendCooldown > 0) return;
-    
+
     setResendLoading(true);
-    setError('');
-    
+    setError("");
+
     try {
       await ApiService.resendOtp(userId);
-      setSuccess('Verification code sent successfully!');
+      setSuccess("Verification code sent successfully!");
       setResendCooldown(60); // 1 minute cooldown
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => setSuccess(""), 3000);
     } catch (error) {
-      setError(error.message || 'Failed to resend code');
+      setError(error.message || "Failed to resend code");
     } finally {
       setResendLoading(false);
     }
@@ -105,17 +105,17 @@ const EmailVerificationPage = () => {
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const pasteData = e.clipboardData.getData('text').slice(0, 6);
-    
+    const pasteData = e.clipboardData.getData("text").slice(0, 6);
+
     if (!/^\d+$/.test(pasteData)) return;
-    
-    const newOtp = pasteData.split('');
-    while (newOtp.length < 6) newOtp.push('');
-    
+
+    const newOtp = pasteData.split("");
+    while (newOtp.length < 6) newOtp.push("");
+
     setOtp(newOtp);
-    
+
     // Focus the last input with data or the first empty one
-    const lastIndex = Math.min(pasteData.length, 5);
+    const lastIndex = Math.min(pasteData.length - 1, 5);
     document.getElementById(`otp-${lastIndex}`)?.focus();
   };
 
@@ -139,37 +139,29 @@ const EmailVerificationPage = () => {
           Back to Register
         </Link>
 
-        {/* Main verification card */}
+        {/* Main card */}
         <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 shadow-2xl">
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-400 rounded-2xl flex items-center justify-center">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
+                <span className="text-white font-bold text-2xl">V</span>
               </div>
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">Verify Your Email</h1>
-            <p className="text-gray-300 mb-4">
-              We've sent a 6-digit verification code to
-            </p>
-            <p className="text-purple-400 font-medium">
-              {userEmail || 'your email address'}
-            </p>
+            <p className="text-gray-300 mb-2">We've sent a code to {userEmail}</p>
+            <p className="text-sm text-gray-400">Enter the 6-digit code below</p>
           </div>
 
-          {/* Success Message */}
-          {success && (
-            <div className="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
-              <p className="text-green-400 text-center">{success}</p>
-            </div>
-          )}
-
-          {/* Error Message */}
           {error && (
             <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
               <p className="text-red-400 text-center">{error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-6 p-4 bg-green-500/20 border border-green-500/50 rounded-lg">
+              <p className="text-green-400 text-center">{success}</p>
             </div>
           )}
 
@@ -180,7 +172,10 @@ const EmailVerificationPage = () => {
               <label className="block text-sm font-medium text-gray-300 mb-4 text-center">
                 Enter the 6-digit code
               </label>
-              <div className="flex justify-center space-x-2" onPaste={handlePaste}>
+              <div
+                className="flex justify-center space-x-2"
+                onPaste={handlePaste}
+              >
                 {otp.map((digit, index) => (
                   <input
                     key={index}
@@ -204,19 +199,31 @@ const EmailVerificationPage = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || otp.join('').length !== 6}
+              disabled={loading || otp.join("").length !== 6}
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-pink-600 transform hover:scale-[1.02] transition-all duration-200 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
                   </svg>
                   <span>Verifying...</span>
                 </div>
               ) : (
-                'Verify Email'
+                "Verify Email"
               )}
             </button>
           </form>
@@ -229,9 +236,11 @@ const EmailVerificationPage = () => {
               disabled={resendLoading || resendCooldown > 0}
               className="text-purple-400 hover:text-purple-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {resendLoading ? 'Sending...' : 
-               resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 
-               'Resend Code'}
+              {resendLoading
+                ? "Sending..."
+                : resendCooldown > 0
+                ? `Resend in ${resendCooldown}s`
+                : "Resend Code"}
             </button>
           </div>
         </div>

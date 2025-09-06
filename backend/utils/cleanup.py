@@ -1,21 +1,18 @@
-from models import db, PendingUser, EmailVerification, PasswordResetToken, RateLimitLog
+from models import db, PendingUser, EmailVerification, PasswordResetToken, RateLimitLog, Expense, Category, User
 from datetime import datetime, timedelta
 import logging
+from config import Config
 
 logger = logging.getLogger(__name__)
 
 class CleanupService:
     @staticmethod
     def cleanup_expired_pending_users():
+        """Remove expired pending users and their verification codes"""
         try:
-            expiration_time = datetime.utcnow() - timedelta(hours=24)
-            expired_users = PendingUser.query.filter(PendingUser.created_at < expiration_time).all()
-            count = len(expired_users)
-            
-            for user in expired_users:
-                EmailVerification.query.filter_by(pending_user_id=user.id).delete()
-                db.session.delete(user)
-            
+            expiration_time = datetime.utcnow() - timedelta(hours=Config.PENDING_USER_EXPIRY_HOURS)
+            count = PendingUser.query.filter(PendingUser.created_at < expiration_time).delete()
+            # Verification codes are automatically deleted via cascade in models.py
             db.session.commit()
             logger.info(f"Cleaned up {count} expired pending users")
             return count
@@ -26,15 +23,11 @@ class CleanupService:
 
     @staticmethod
     def cleanup_expired_verification_codes():
+        """Remove expired email verification codes"""
         try:
-            expired_codes = EmailVerification.query.filter(
+            count = EmailVerification.query.filter(
                 EmailVerification.expires_at < datetime.utcnow()
-            ).all()
-            count = len(expired_codes)
-            
-            for code in expired_codes:
-                db.session.delete(code)
-            
+            ).delete()
             db.session.commit()
             logger.info(f"Cleaned up {count} expired verification codes")
             return count
@@ -45,17 +38,14 @@ class CleanupService:
 
     @staticmethod
     def cleanup_expired_reset_tokens():
+        """Remove expired or used password reset tokens"""
         try:
-            expired_tokens = PasswordResetToken.query.filter(
-                PasswordResetToken.expires_at < datetime.utcnow()
-            ).all()
-            count = len(expired_tokens)
-            
-            for token in expired_tokens:
-                db.session.delete(token)
-            
+            count = PasswordResetToken.query.filter(
+                (PasswordResetToken.expires_at < datetime.utcnow()) | 
+                (PasswordResetToken.is_used == True)
+            ).delete()
             db.session.commit()
-            logger.info(f"Cleaned up {count} expired password reset tokens")
+            logger.info(f"Cleaned up {count} expired or used password reset tokens")
             return count
         except Exception as e:
             logger.error(f"Error cleaning up reset tokens: {str(e)}")
@@ -64,14 +54,10 @@ class CleanupService:
 
     @staticmethod
     def cleanup_old_rate_limit_logs():
+        """Remove rate limit logs older than 1 day"""
         try:
             expiration_time = datetime.utcnow() - timedelta(days=1)
-            old_logs = RateLimitLog.query.filter(RateLimitLog.attempt_time < expiration_time).all()
-            count = len(old_logs)
-            
-            for log in old_logs:
-                db.session.delete(log)
-            
+            count = RateLimitLog.query.filter(RateLimitLog.attempt_time < expiration_time).delete()
             db.session.commit()
             logger.info(f"Cleaned up {count} old rate limit logs")
             return count
@@ -81,11 +67,50 @@ class CleanupService:
             return 0
 
     @staticmethod
+    def cleanup_orphaned_expenses():
+        """Remove expenses with non-existent users"""
+        try:
+            count = Expense.query.filter(~Expense.user_id.in_(
+                db.session.query(User.id)
+            )).delete(synchronize_session=False)
+            db.session.commit()
+            logger.info(f"Cleaned up {count} orphaned expenses")
+            return count
+        except Exception as e:
+            logger.error(f"Error cleaning up orphaned expenses: {str(e)}")
+            db.session.rollback()
+            return 0
+
+    @staticmethod
+    def cleanup_orphaned_categories():
+        """Remove categories with non-existent users"""
+        try:
+            count = Category.query.filter(~Category.user_id.in_(
+                db.session.query(User.id)
+            )).delete(synchronize_session=False)
+            db.session.commit()
+            logger.info(f"Cleaned up {count} orphaned categories")
+            return count
+        except Exception as e:
+            logger.error(f"Error cleaning up orphaned categories: {str(e)}")
+            db.session.rollback()
+            return 0
+
+    @staticmethod
     def run_all_cleanup_tasks():
-        results = {
-            'pending_users': CleanupService.cleanup_expired_pending_users(),
-            'verification_codes': CleanupService.cleanup_expired_verification_codes(),
-            'reset_tokens': CleanupService.cleanup_expired_reset_tokens(),
-            'rate_limit_logs': CleanupService.cleanup_old_rate_limit_logs()
-        }
-        return results
+        """Run all cleanup tasks and return results"""
+        try:
+            results = {
+                'pending_users': CleanupService.cleanup_expired_pending_users(),
+                'verification_codes': CleanupService.cleanup_expired_verification_codes(),
+                'reset_tokens': CleanupService.cleanup_expired_reset_tokens(),
+                'rate_limit_logs': CleanupService.cleanup_old_rate_limit_logs(),
+                'orphaned_expenses': CleanupService.cleanup_orphaned_expenses(),
+                'orphaned_categories': CleanupService.cleanup_orphaned_categories()
+            }
+            logger.info(f"Cleanup results: {results}")
+            return results
+        except Exception as e:
+            logger.error(f"Error during cleanup: {str(e)}")
+            db.session.rollback()
+            raise
