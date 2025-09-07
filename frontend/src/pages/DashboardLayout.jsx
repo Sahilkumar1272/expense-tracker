@@ -1,179 +1,210 @@
-// src/pages/DashboardLayout.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Outlet } from 'react-router-dom';
+import { useNavigate, Outlet, Link, useLocation } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const DashboardLayout = () => {
   const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  if (loading) {
-    return <LoadingSpinner message="Loading Your Dashboard..." />;
-  }
-
-  if (!user) {
-    navigate('/login');
-    return null;
-  }
+  // Remove the useEffect auth check since ProtectedRoute already handles it
+  // Just show loading spinner while authentication is being checked
+  if (loading) return <LoadingSpinner message="Loading Your Dashboard..." />;
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  // Reusable NavItem with active state
+  const NavItem = ({ to, onClick, icon, label }) => {
+    const isActive = location.pathname === to;
+    
+    return (
+      <li className="relative group">
+        <Link
+          to={to}
+          onClick={onClick}
+          className={`flex items-center ${
+            sidebarOpen ? 'space-x-3 px-4 py-2' : 'justify-center p-3'
+          } text-white rounded-lg transition-colors ${
+            isActive 
+              ? 'bg-white/20 border border-white/30' 
+              : 'hover:bg-white/15'
+          }`}
+        >
+          {icon}
+          {sidebarOpen && <span>{label}</span>}
+        </Link>
+        {!sidebarOpen && (
+          <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-sm text-white bg-black/70 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50">
+            {label}
+          </span>
+        )}
+      </li>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } transition-transform duration-300 ease-in-out md:relative md:translate-x-0 bg-white/10 backdrop-blur-lg border-r border-white/20 flex flex-col`}
+        className={`sticky top-16 ${
+          sidebarOpen ? 'w-56' : 'w-16'
+        } transition-all duration-300 ease-in-out bg-white/10 backdrop-blur-lg border-r border-white/20 flex flex-col z-40 h-[calc(100vh-4rem)]`}
       >
-        {/* User Profile - Top */}
-        <div className="p-6 border-b border-white/10">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
-              <span className="text-white font-medium text-lg">
-                {user.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            <div>
-              <p className="text-white font-semibold">{user.name}</p>
-              <p className="text-xs text-gray-400">Premium Member</p>
-            </div>
-          </div>
+        {/* Sidebar Header with only toggle */}
+        <div className="p-4 border-b border-white/10 flex justify-end">
+          <button
+            onClick={toggleSidebar}
+            className="text-white p-2 focus:outline-none"
+          >
+            <svg
+              className={`w-6 h-6 transform transition-transform duration-300 ${
+                sidebarOpen ? 'rotate-180' : 'rotate-0'
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 p-4">
+        {/* Navigation */}
+        <nav className="flex-1 p-2">
           <ul className="space-y-2">
-            <li>
-              <a
-                href="/dashboard"
-                className="flex items-center space-x-3 px-4 py-3 text-white hover:bg-white/15 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                  />
+            <NavItem
+              to="/dashboard"
+              label="Home"
+              icon={
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l9-9 9 9M5 10v10h14V10" />
                 </svg>
-                <span>Home</span>
-              </a>
-            </li>
-            <li>
-              <a
-                href="/dashboard/overview"
-                className="flex items-center space-x-3 px-4 py-3 text-white hover:bg-white/15 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                  />
+              }
+            />
+            <NavItem
+              to="/dashboard/overview"
+              label="Dashboard"
+              icon={
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-6h6v6H9z M5 21h14V7H5v14z" />
                 </svg>
-                <span>Dashboard</span>
-              </a>
-            </li>
-            <li>
-              <a
-                href="/dashboard/transactions"
-                className="flex items-center space-x-3 px-4 py-3 text-white hover:bg-white/15 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                  />
+              }
+            />
+            <NavItem
+              to="/dashboard/transactions"
+              label="Transactions"
+              icon={
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                <span>Transactions</span>
-              </a>
-            </li>
+              }
+            />
           </ul>
         </nav>
 
-        {/* Bottom Settings and Sign Out */}
-        <div className="p-4 border-t border-white/10">
+        {/* Bottom Section (Settings + Sign Out + Profile) */}
+        <div className="p-2 border-t border-white/10">
           <ul className="space-y-2">
-            <li>
-              <button
-                onClick={() => navigate('/dashboard/settings')}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-white hover:bg-white/15 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <NavItem
+              to="/dashboard/settings"
+              label="Settings"
+              icon={
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                    d="M10.325 4.317a2 2 0 013.35 0 2 2 0 002.573 1.066 2 2 0 012.37 2.37 2 2 0 001.065 2.572 2 2 0 010 3.35 2 2 0 00-1.066 2.573 2 2 0 01-2.37 2.37 2 2 0 00-2.573 1.066 2 2 0 01-3.35 0 2 2 0 00-2.573-1.066 2 2 0 01-2.37-2.37 2 2 0 00-1.065-2.572 2 2 0 010-3.35 2 2 0 001.066-2.573 2 2 0 012.37-2.37A2 2 0 0010.325 4.317z"
                   />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-                <span>Settings</span>
-              </button>
-            </li>
-            <li>
+              }
+            />
+
+            {/* Sign Out */}
+            <li className="relative group">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center space-x-3 px-4 py-3 text-white hover:bg-white/15 rounded-lg transition-colors"
+                className={`w-full flex items-center ${
+                  sidebarOpen ? 'space-x-3 px-4 py-2' : 'justify-center p-3'
+                } text-white hover:bg-white/15 rounded-lg transition-colors`}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4-4-4m-6 8v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                <span>Sign Out</span>
+                {sidebarOpen && <span>Sign Out</span>}
               </button>
+              {!sidebarOpen && (
+                <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-sm text-white bg-black/70 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50">
+                  Sign Out
+                </span>
+              )}
             </li>
+
+          {/* Profile Section BELOW Sign Out */}
+      <li className="mt-4 relative group">
+        <div
+          className={`flex items-center ${
+            sidebarOpen ? 'space-x-3 px-4 py-2' : 'justify-center p-1'
+          }`}
+        >
+          {/* Avatar */}
+          <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+            <span className="text-white font-medium text-lg">
+              {user?.name?.charAt(0).toUpperCase()}
+            </span>
+          </div>
+
+          {/* Name + Role (only when sidebar is expanded) */}
+          {sidebarOpen && (
+            <div className="flex flex-col">
+              <span className="text-white font-semibold">
+                {user?.name || 'Sahil Kumar'}
+              </span>
+              <span className="text-xs text-gray-400">Premium Member</span>
+            </div>
+          )}
+        </div>
+
+        {/* Tooltip when sidebar is collapsed */}
+        {!sidebarOpen && (
+          <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 text-sm text-white bg-black/70 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50">
+            {user?.name || 'Sahil Kumar'}
+          </span>
+        )}
+      </li>
+
           </ul>
         </div>
       </aside>
 
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        ></div>
-      )}
-
       {/* Main Content */}
-      <div className="flex-1">
-        {/* Top Navigation (Optional, kept for branding consistency) */}
-        <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16 items-center">
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="md:hidden text-white p-2"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                </button>
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">E</span>
-                </div>
-                <span className="text-white font-bold text-xl">ExpenseTracker</span>
+      <div
+        className={`flex-1 transition-all duration-300 ${
+          sidebarOpen ? 'ml-16' : 'ml-16'
+        }`}
+      >
+        {/* Top Navbar */}
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/10 backdrop-blur-lg border-b border-white/20">
+          <div className="flex justify-between h-16 items-center px-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-400 to-pink-400 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">E</span>
               </div>
+              <span className="text-white font-bold text-xl">ExpenseTracker</span>
             </div>
           </div>
         </nav>
 
-        {/* Page Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Outlet for child routes */}
+        <main className="px-4 pt-20 pb-8">
           <Outlet />
         </main>
       </div>

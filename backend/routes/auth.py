@@ -218,7 +218,7 @@ def verify_email():
         return jsonify({'error': 'An unexpected error occurred'}), 500
 
 @auth_bp.route('/resend-otp', methods=['POST'])
-@rate_limit(limit=13, period=3600)
+@rate_limit(limit=20, period=3600)
 def resend_otp():
     try:
         data = request.get_json()
@@ -236,7 +236,7 @@ def resend_otp():
             db.session.commit()
             return jsonify({'error': 'Registration expired. Please register again.'}), 400
         
-        if datetime.utcnow() - pending_user.last_otp_sent < timedelta(minutes=5):
+        if datetime.utcnow() - pending_user.last_otp_sent < timedelta(minutes=1):
             return jsonify({'error': 'Please wait before requesting another code'}), 429
         
         otp = EmailVerification.generate_otp()
@@ -279,8 +279,9 @@ def login():
         
         user = User.query.filter_by(email=email).first()
         
+        # Use generic error message for security (prevents email enumeration)
         if not user or not user.check_password(password):
-            return jsonify({'error': 'Invalid credentials'}), 401
+            return jsonify({'error': 'Invalid email or password'}), 401
         
         access_token = create_access_token(identity=str(user.id))
         refresh_token = create_refresh_token(identity=str(user.id))
@@ -298,6 +299,8 @@ def login():
     except Exception as e:
         logger.error(f"Unexpected error during login: {str(e)}")
         return jsonify({'error': 'An unexpected error occurred'}), 500
+    
+    
 @auth_bp.route('/refresh', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh_token():

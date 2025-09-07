@@ -16,14 +16,31 @@ import Transactions from './pages/Transactions';
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+  
   return user ? children : <Navigate to="/login" replace />;
 };
 
-// Public Route Component
+// Public Route Component - Only redirect if user is authenticated AND not loading
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div>Loading...</div>;
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
+  
+  // Only redirect to dashboard if we have a confirmed authenticated user
   return user ? <Navigate to="/dashboard" replace /> : children;
 };
 
@@ -81,7 +98,7 @@ function App() {
               <Route index element={<HomeDashboard />} />
               <Route path="overview" element={<DashboardOverview />} />
               <Route path="transactions" element={<Transactions />} />
-              <Route path="settings" element={<div>Settings Page (To be implemented)</div>} />
+              <Route path="settings" element={<div className="text-white">Settings Page (To be implemented)</div>} />
             </Route>
 
             {/* Catch all route */}

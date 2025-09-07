@@ -19,18 +19,19 @@ const RegisterPage = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     
-    // Clear error when user starts typing
-    if (errors[e.target.name] || errors.submit) {
-      setErrors({
-        ...errors,
-        [e.target.name]: '',
+    // Clear specific field error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: '',
         submit: ''
-      });
+      }));
     }
   };
 
@@ -38,16 +39,18 @@ const RegisterPage = () => {
     const newErrors = {};
 
     // Name validation
-    if (!formData.name.trim()) {
+    const trimmedName = formData.name?.trim() || '';
+    if (!trimmedName) {
       newErrors.name = 'Name is required';
-    } else if (formData.name.trim().length < 2) {
+    } else if (trimmedName.length < 2) {
       newErrors.name = 'Name must be at least 2 characters long';
     }
 
     // Email validation
-    if (!formData.email.trim()) {
+    const trimmedEmail = formData.email?.trim() || '';
+    if (!trimmedEmail) {
       newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    } else if (!/\S+@\S+\.\S+/.test(trimmedEmail)) {
       newErrors.email = 'Please enter a valid email address';
     }
 
@@ -71,48 +74,69 @@ const RegisterPage = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrors({});
-    setLoading(true);
+  e.preventDefault();
+  setErrors({});
+  setLoading(true);
 
-    // Validate form
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      setLoading(false);
-      return;
-    }
+  console.log('Form data before validation:', formData); // Debug log
 
-    try {
-      console.log('Submitting registration:', formData); // Debug log
-      
-      // Call register function from AuthContext
-      const response = await register({
-        name: formData.name.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-        confirmPassword: formData.confirmPassword
-      });
+  // Validate form
+  const validationErrors = validateForm();
+  if (Object.keys(validationErrors).length > 0) {
+    console.log('Validation errors:', validationErrors); // Debug log
+    setErrors(validationErrors);
+    setLoading(false);
+    return;
+  }
 
-      console.log('Registration response:', response); // Debug log
+  try {
+    console.log('Submitting registration:', {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
+      confirm_password: formData.confirmPassword  // Changed to match backend expectation
+    }); // Debug log
+    
+    // Call register function from AuthContext
+    const response = await register({
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
+      confirm_password: formData.confirmPassword  // Changed to match backend expectation
+    });
 
-      // Navigate to email verification page with user data
-      navigate('/verify-email', {
-        state: {
-          userId: response.user_id,
-          userEmail: formData.email.trim()
-        }
-      });
+    console.log('Registration response:', response); // Debug log
 
-    } catch (error) {
-      console.error('Registration error:', error); // Debug log
+    // Navigate to email verification page with user data
+    navigate('/verify-email', {
+      state: {
+        userId: response.user_id,
+        userEmail: formData.email.trim()
+      }
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error); // Debug log
+    
+    // Handle different types of errors
+    if (error.message) {
       setErrors({
-        submit: error.message || 'Registration failed. Please try again.'
+        submit: error.message
       });
-    } finally {
-      setLoading(false);
+    } else if (typeof error === 'string') {
+      setErrors({
+        submit: error
+      });
+    } else {
+      setErrors({
+        submit: 'Registration failed. Please try again.'
+      });
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
@@ -190,7 +214,9 @@ const RegisterPage = () => {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="Enter your full name"
-                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className={`w-full bg-white/5 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all ${
+                  errors.name ? 'border-red-500' : 'border-white/20'
+                }`}
                 required
                 disabled={loading}
                 autoComplete="name"
@@ -209,7 +235,9 @@ const RegisterPage = () => {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="Enter your email"
-                className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                className={`w-full bg-white/5 border rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all ${
+                  errors.email ? 'border-red-500' : 'border-white/20'
+                }`}
                 required
                 disabled={loading}
                 autoComplete="email"
@@ -229,7 +257,9 @@ const RegisterPage = () => {
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Create a password"
-                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className={`w-full bg-white/5 border rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all ${
+                    errors.password ? 'border-red-500' : 'border-white/20'
+                  }`}
                   required
                   disabled={loading}
                   autoComplete="new-password"
@@ -270,7 +300,9 @@ const RegisterPage = () => {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   placeholder="Re-enter your password"
-                  className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className={`w-full bg-white/5 border rounded-lg px-4 py-3 pr-12 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all ${
+                    errors.confirmPassword ? 'border-red-500' : 'border-white/20'
+                  }`}
                   required
                   disabled={loading}
                   autoComplete="new-password"
