@@ -5,6 +5,7 @@ import secrets
 import re
 import random
 import string
+from sqlalchemy import UniqueConstraint
 
 db = SQLAlchemy()
 
@@ -46,14 +47,20 @@ class Category(db.Model):
     __tablename__ = "categories"
     
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # ✅ must match 'users'
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     name = db.Column(db.String(100), nullable=False)
+    type = db.Column(db.String(10), default='expense')  # 'expense' or 'income'
     is_default = db.Column(db.Boolean, default=False)
+
+    __table_args__ = (
+        UniqueConstraint('name', 'type', 'user_id', name='uix_category_name_type_user'),
+    )
 
     def to_dict(self):
         return {
             "id": self.id,
             "name": self.name,
+            "type": self.type,
             "is_default": self.is_default
         }
 
@@ -63,9 +70,11 @@ class Expense(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    description = db.Column(db.String(255), nullable=False)
+    type = db.Column(db.String(10), default='expense')  # 'expense' or 'income'
+    description = db.Column(db.String(255), nullable=True)
     amount = db.Column(db.Float, nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
+    payment_mode = db.Column(db.String(20), default='cash')
     date = db.Column(db.DateTime, default=datetime.utcnow)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -75,14 +84,16 @@ class Expense(db.Model):
     
     def to_dict(self):
         return {
-        'id': self.id,
-        'description': self.description,
-        'amount': self.amount,
-        'category_id': self.category_id,
-        'date': self.date.isoformat() if self.date else None,
-        'created_at': self.created_at.isoformat() if self.created_at else None,
-        'updated_at': self.updated_at.isoformat() if self.updated_at else None
-    }
+            'id': self.id,
+            'type': self.type,
+            'description': self.description,
+            'amount': self.amount,
+            'category_id': self.category_id,
+            'payment_mode': self.payment_mode,
+            'date': self.date.isoformat() if self.date else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
 
 # ---------------------- PENDING USER ----------------------
 class PendingUser(db.Model):
@@ -186,3 +197,67 @@ class PasswordResetToken(db.Model):
 
     def is_expired(self):
         return datetime.utcnow() > self.expires_at
+
+# ---------------------- DEFAULT CATEGORIES ----------------------
+default_expense_categories = [
+    'Food',
+    'Groceries',
+    'Transportation',
+    'Utilities',
+    'Housing',
+    'Healthcare',
+    'Insurance',
+    'Debt Repayment',
+    'Savings',
+    'Entertainment',
+    'Personal Care',
+    'Education',
+    'Gifts & Donations',
+    'Subscriptions',
+    'Miscellaneous'
+]
+
+default_income_categories = [
+    'Salary',
+    'Freelance',
+    'Investments',
+    'Rental Income',
+    'Business',
+    'Gifts',
+    'Other'
+]
+
+def seed_default_categories():
+    """Seed default categories into the database"""
+    try:
+        print("Starting to seed default categories...")
+        
+        # Seed expense categories
+        for name in default_expense_categories:
+            existing = Category.query.filter_by(name=name, type='expense', is_default=True, user_id=None).first()
+            if not existing:
+                category = Category(name=name, type='expense', is_default=True, user_id=None)
+                db.session.add(category)
+                print(f"Added default expense category: {name}")
+        
+        # Seed income categories
+        for name in default_income_categories:
+            existing = Category.query.filter_by(name=name, type='income', is_default=True, user_id=None).first()
+            if not existing:
+                category = Category(name=name, type='income', is_default=True, user_id=None)
+                db.session.add(category)
+                print(f"Added default income category: {name}")
+        
+        db.session.commit()
+        print("Default categories seeded successfully!")
+        
+        # Verify seeding worked
+        expense_count = Category.query.filter_by(type='expense', is_default=True).count()
+        income_count = Category.query.filter_by(type='income', is_default=True).count()
+        print(f"Total default expense categories in DB: {expense_count}")
+        print(f"Total default income categories in DB: {income_count}")
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error seeding default categories: {str(e)}")
+        raise e

@@ -9,9 +9,37 @@ class ExpenseService {
     });
   }
 
-  async getExpenses() {
-    return request('/expenses');
+ async getExpenses(page = 1, perPage = 15, filters = {}) {
+  // Build query string from filters
+  const queryParams = new URLSearchParams({
+    page: page,
+    per_page: perPage
+  });
+  
+  // Handle array filters properly
+  if (filters.type && filters.type.length > 0) {
+    filters.type.forEach(type => queryParams.append('type', type));
   }
+  
+  if (filters.paymentMode && filters.paymentMode.length > 0) {
+    filters.paymentMode.forEach(mode => queryParams.append('payment_mode', mode));
+  }
+  
+  if (filters.category && filters.category.length > 0) {
+    filters.category.forEach(catId => queryParams.append('category_id', catId));
+  }
+  
+  // Handle single value filters
+  if (filters.start_date) {
+    queryParams.append('start_date', filters.start_date);
+  }
+  
+  if (filters.end_date) {
+    queryParams.append('end_date', filters.end_date);
+  }
+  
+  return request(`/expenses?${queryParams}`);
+}
 
   async updateExpense(id, data) {
     return request(`/expenses/${id}`, {

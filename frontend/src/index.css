@@ -96,3 +96,27 @@ body {
 .animate-fade-in-up {
   animation: fade-in-up 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
+
+
+/* Add to index.css */
+@media (max-width: 768px) {
+  .transaction-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  .filter-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .button-mobile {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+}

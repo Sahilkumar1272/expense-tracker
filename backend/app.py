@@ -3,7 +3,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail
 from config import Config
-from models import db, Category
+from models import db, seed_default_categories
 from routes.auth import auth_bp
 from routes.expense import expense_bp
 import logging
@@ -11,41 +11,6 @@ import threading
 import time
 from utils.cleanup import CleanupService
 from flask_migrate import Migrate
-
-
-def seed_default_categories(app):
-    """Insert well-known categories if they don't exist"""
-    defaults = [
-        "Food",
-        "Transport",
-        "Bills",
-        "Shopping",
-        "Health",
-        "Entertainment",
-        "Education",
-        "Salary",
-        "Rent",
-        "Groceries",
-        "Travel",
-        "Subscriptions",
-        "Gifts",
-        "Investment",
-        "Utilities",
-        "Personal Care",
-        "Miscellaneous"
-    ]
-    with app.app_context():
-        try:
-            for name in defaults:
-                if not Category.query.filter_by(name=name, is_default=True).first():
-                    category = Category(name=name, is_default=True, user_id=None)
-                    db.session.add(category)
-                    app.logger.info(f"Added default category: {name}")
-            db.session.commit()
-            app.logger.info("Default categories seeded successfully")
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Error seeding default categories: {str(e)}")
 
 
 def create_app():
@@ -75,7 +40,7 @@ def create_app():
     # Create database tables + seed defaults
     with app.app_context():
         db.create_all()
-        seed_default_categories(app)
+        seed_default_categories()  # Use the function from models.py
     
     @app.route('/api/health')
     def health_check():
@@ -85,7 +50,7 @@ def create_app():
     @app.route('/api/seed-categories', methods=['POST'])
     def manual_seed():
         try:
-            seed_default_categories(app)
+            seed_default_categories()  # Use the function from models.py
             return jsonify({'message': 'Categories seeded successfully'}), 200
         except Exception as e:
             return jsonify({'error': str(e)}), 500

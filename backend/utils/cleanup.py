@@ -83,11 +83,14 @@ class CleanupService:
 
     @staticmethod
     def cleanup_orphaned_categories():
-        """Remove categories with non-existent users"""
+        """Remove user-specific categories with non-existent users (preserve default categories)"""
         try:
-            count = Category.query.filter(~Category.user_id.in_(
-                db.session.query(User.id)
-            )).delete(synchronize_session=False)
+            # Only delete categories that have a user_id (not default categories) 
+            # AND where that user no longer exists
+            count = Category.query.filter(
+                Category.user_id.isnot(None),  # Only check user-specific categories
+                ~Category.user_id.in_(db.session.query(User.id))  # User doesn't exist
+            ).delete(synchronize_session=False)
             db.session.commit()
             logger.info(f"Cleaned up {count} orphaned categories")
             return count
