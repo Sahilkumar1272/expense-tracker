@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import ExpenseService from "../api/expenseApi";
 import { useAuth } from "../context/AuthContext";
+import { useLoading } from "../context/LoadingContext";
+import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import DateRangePicker from "../components/DateRangePicker";
 
 const Transactions = () => {
   const [expenses, setExpenses] = useState([]);
@@ -15,9 +18,9 @@ const Transactions = () => {
   });
   const [editFormData, setEditFormData] = useState(null);
   const [categoryForm, setCategoryForm] = useState({ name: "", type: "expense" });
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const { showLoading, hideLoading } = useLoading();
   const [categorySearch, setCategorySearch] = useState("");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [selectedExpenses, setSelectedExpenses] = useState([]);
@@ -29,11 +32,31 @@ const Transactions = () => {
     category: [],
     dateRange: { start: "", end: "" }
   });
+  // Set default to last year
+  const getLastYearRange = () => {
+    const today = new Date();
+    const lastYear = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+    return {
+      start: lastYear,
+      end: today
+    };
+  };
+
+  const [dateRange, setDateRange] = useState(getLastYearRange());
   const [showFilters, setShowFilters] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const itemsPerPage = 15;
   const { user } = useAuth();
+
+  // Delete modal state
+  const [deleteModal, setDeleteModal] = useState({
+    isOpen: false,
+    isBulk: false,
+    transactionId: null,
+    count: 0,
+    isLoading: false
+  });
 
   // Update category icons to include income categories
   const categoryIcons = {
@@ -89,6 +112,7 @@ const Transactions = () => {
 
 const fetchExpenses = async () => {
   try {
+     showLoading("Loading transactions...");
     // Prepare filters for API
     const apiFilters = {};
     
@@ -117,6 +141,8 @@ const fetchExpenses = async () => {
     setTotalExpenses(response.total || 0);
   } catch (err) {
     showError("Failed to fetch expenses");
+  }finally {
+    hideLoading();
   }
 };
   const handleInputChange = (e) => {
@@ -174,14 +200,14 @@ const fetchExpenses = async () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    showLoading("Loading...");
     
     try {
       // Convert amount to number and validate
       const amount = parseFloat(formData.amount);
       if (isNaN(amount) || amount <= 0) {
         showError("Please enter a valid amount");
-        setLoading(false);
+        hideLoading();
         return;
       }
 
@@ -210,13 +236,13 @@ const fetchExpenses = async () => {
     } catch (err) {
       showError(err.message || "Failed to add transaction");
     } finally {
-      setLoading(false);
+      hideLoading();
     }
   };
 
   const handleCategorySubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    showLoading("Loading...");
     try {
       await ExpenseService.addCategory(categoryForm);
       setCategoryForm({ name: "", type: "expense" });
@@ -225,7 +251,7 @@ const fetchExpenses = async () => {
     } catch (err) {
       showError(err.message || "Failed to add category");
     } finally {
-      setLoading(false);
+      hideLoading();
     }
   };
 
@@ -239,14 +265,14 @@ const fetchExpenses = async () => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    showLoading("Loading...");
     
     try {
       // Convert amount to number and validate
       const amount = parseFloat(editFormData.amount);
       if (isNaN(amount) || amount <= 0) {
         showError("Please enter a valid amount");
-        setLoading(false);
+        hideLoading();
         return;
       }
 
@@ -268,25 +294,48 @@ const fetchExpenses = async () => {
     } catch (err) {
       showError(err.message || "Failed to update transaction");
     } finally {
-      setLoading(false);
+      hideLoading();
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this transaction?")) return;
+  const handleDelete = (id) => {
+    setDeleteModal({
+      isOpen: true,
+      isBulk: false,
+      transactionId: id,
+      count: 1,
+      isLoading: false
+    });
+  };
+
+  const confirmDelete = async () => {
+    showLoading("Loading...");
     
     try {
-      await ExpenseService.deleteExpense(id);
+      await ExpenseService.deleteExpense(deleteModal.transactionId);
       showSuccess("Transaction deleted successfully!");
       fetchExpenses(); // Refresh the expenses list
-      setSelectedExpenses(selectedExpenses.filter(expId => expId !== id));
+      setSelectedExpenses(selectedExpenses.filter(expId => expId !== deleteModal.transactionId));
+      setDeleteModal({ isOpen: false, isBulk: false, transactionId: null, count: 0, isLoading: false });
     } catch (err) {
       showError(err.message || "Failed to delete transaction");
+    } finally {
+      hideLoading();
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete ${selectedExpenses.length} transactions?`)) return;
+  const handleBulkDelete = () => {
+    setDeleteModal({
+      isOpen: true,
+      isBulk: true,
+      transactionId: null,
+      count: selectedExpenses.length,
+      isLoading: false
+    });
+  };
+
+  const confirmBulkDelete = async () => {
+    showLoading("Loading...");
     
     try {
       // Delete all selected expenses
@@ -294,8 +343,17 @@ const fetchExpenses = async () => {
       showSuccess(`${selectedExpenses.length} transactions deleted successfully!`);
       fetchExpenses(); // Refresh the expenses list
       setSelectedExpenses([]);
+      setDeleteModal({ isOpen: false, isBulk: false, transactionId: null, count: 0, isLoading: false });
     } catch (err) {
       showError(err.message || "Failed to delete transactions");
+    } finally {
+      hideLoading();
+    }
+  };
+
+  const closeDeleteModal = () => {
+    if (!deleteModal.isLoading) {
+      setDeleteModal({ isOpen: false, isBulk: false, transactionId: null, count: 0, isLoading: false });
     }
   };
 
@@ -343,6 +401,20 @@ const fetchExpenses = async () => {
     
     // Reset to first page when filters change
     setCurrentPage(1);
+  };
+
+  const handleDateRangeChange = (start, end) => {
+    setDateRange({ start, end });
+  };
+
+  const handleApplyDateFilter = (start, end) => {
+    // Convert dates to string format for filters
+    const formatDate = (date) => date ? date.toISOString().split('T')[0] : '';
+    
+    handleFilterChange('dateRange', {
+      start: formatDate(start),
+      end: formatDate(end)
+    });
   };
 
   // Add function to remove specific filters
@@ -564,10 +636,9 @@ const fetchExpenses = async () => {
           </div>
           <button
             type="submit"
-            disabled={loading}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
           >
-            {loading ? "Adding..." : "Add Category"}
+            Add Category
           </button>
         </form>
       </div>
@@ -693,10 +764,9 @@ const fetchExpenses = async () => {
           </div>
           <button
             type="submit"
-            disabled={loading}
-            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50"
+            className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all"
           >
-            {loading ? "Adding..." : "Add Transaction"}
+            Add Transaction
           </button>
         </form>
       </div>
@@ -754,7 +824,20 @@ const fetchExpenses = async () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+            {/* Date Range Filter - Moved to top left */}
+            <div className="mb-6">
+              <div className="max-w-md">
+                <label className="block text-gray-300 mb-2">Date Range</label>
+                <DateRangePicker
+                  startDate={dateRange.start}
+                  endDate={dateRange.end}
+                  onDateChange={handleDateRangeChange}
+                  onApply={handleApplyDateFilter}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
               {/* Transaction Type Filter */}
               <div>
                 <label className="block text-gray-300 mb-2">Transaction Type</label>
@@ -796,57 +879,35 @@ const fetchExpenses = async () => {
               </div>
 
               {/* Category Filter - Fixed duplicates */}
-      <div>
-        <label className="block text-gray-300 mb-2">Category</label>
-        <div className="max-h-40 overflow-y-auto space-y-2">
-          {uniqueCategories.map(category => (
-            <label key={category.id} className="flex items-center">
-              <input
-                type="checkbox"
-                checked={filters.category.includes(category.id)}
-                onChange={() => handleFilterChange('category', category.id)}
-                className="w-4 h-4 accent-purple-500"
-              />
-              <span className="ml-2 text-white flex items-center">
-                <span className="mr-1">{getCategoryIcon(category.name)}</span>
-                {category.name}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-
-              {/* Date Range Filter */}
               <div>
-                <label className="block text-gray-300 mb-2">Date Range</label>
-                <div className="space-y-2">
-                  <input
-                    type="date"
-                    value={filters.dateRange.start}
-                    onChange={(e) => handleFilterChange('dateRange', { start: e.target.value })}
-                    className="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
-                    placeholder="Start Date"
-                  />
-                  <input
-                    type="date"
-                    value={filters.dateRange.end}
-                    onChange={(e) => handleFilterChange('dateRange', { end: e.target.value })}
-                    className="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
-                    placeholder="End Date"
-                  />
+                <label className="block text-gray-300 mb-2">Category</label>
+                <div className="max-h-40 overflow-y-auto space-y-2">
+                  {uniqueCategories.map(category => (
+                    <label key={category.id} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={filters.category.includes(category.id)}
+                        onChange={() => handleFilterChange('category', category.id)}
+                        className="w-4 h-4 accent-purple-500"
+                      />
+                      <span className="ml-2 text-white flex items-center">
+                        <span className="mr-1">{getCategoryIcon(category.name)}</span>
+                        {category.name}
+                      </span>
+                    </label>
+                  ))}
                 </div>
               </div>
+            </div>
 
-              {/* Clear Filters Button */}
-              <div className="md:col-span-4 flex justify-end">
-                <button
-                  onClick={clearFilters}
-                  className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-all"
-                >
-                  Clear All Filters
-                </button>
-              </div>
+            {/* Clear Filters Button */}
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={clearFilters}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-all"
+              >
+                Clear All Filters
+              </button>
             </div>
           </>
         )}
@@ -1011,10 +1072,9 @@ const fetchExpenses = async () => {
               <div className="flex space-x-3">
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all disabled:opacity-50 flex-1"
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-700 hover:to-blue-700 transition-all flex-1"
                 >
-                  {loading ? "Updating..." : "Update"}
+                  Update
                 </button>
                 
                 <button
@@ -1202,6 +1262,16 @@ const fetchExpenses = async () => {
           </>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        onConfirm={deleteModal.isBulk ? confirmBulkDelete : confirmDelete}
+        isBulk={deleteModal.isBulk}
+        count={deleteModal.count}
+        isLoading={false}
+      />
     </div>
   );
 };
